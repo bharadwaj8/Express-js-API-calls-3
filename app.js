@@ -28,12 +28,28 @@ const initializeDBAndServer = async () => {
 
 initializeDBAndServer();
 
+const convertMovieToResponse = (obj) => {
+  return {
+    movieId: obj.movie_id,
+    directorId: obj.director_id,
+    movieName: obj.movie_name,
+    leadActor: obj.lead_actor,
+  };
+};
+
+const convertDirectorToResponse = (obj) => {
+  return {
+    directorId: obj.director_id,
+    directorName: obj.director_name,
+  };
+};
+
 //GET movies list
 app.get("/movies/", async (request, response) => {
   const moviesQuery = `
-    SELECT * FROM movie;`;
+    SELECT movie_name FROM movie ORDER BY movie_id;`;
   const dbResponse = await db.all(moviesQuery);
-  response.send(dbResponse);
+  response.send(dbResponse.map((each) => ({ movieName: each.movie_name })));
 });
 
 //Add new movie
@@ -63,8 +79,8 @@ app.get("/movies/:movieId/", async (request, response) => {
     SELECT * FROM movie 
     WHERE movie_id=${movieId};`;
 
-  const dbResponse = await db.get(getMovieQuery);
-  response.send(dbResponse);
+  const dbResponse = await db.all(getMovieQuery);
+  response.send(dbResponse.map((each) => convertMovieToResponse(each)));
 });
 
 //Update movies using movie ID
@@ -92,7 +108,7 @@ app.delete("/movies/:movieId/", async (request, response) => {
     WHERE movie_id=${movieId};`;
 
   await db.run(deleteMovieQuery);
-  response.send("Movie Deleted");
+  response.send("Movie Removed");
 });
 
 //GET list of directors
@@ -102,7 +118,7 @@ app.get("/directors/", async (request, response) => {
 
   const dbResponse = await db.all(getDirectorsQuery);
 
-  response.send(dbResponse);
+  response.send(dbResponse.map((each) => convertDirectorToResponse(each)));
 });
 
 //GET list of movies using directorId
@@ -114,7 +130,13 @@ app.get("/directors/:directorId/movies/", async (request, response) => {
     WHERE director_id=${directorId};`;
 
   const dbResponse = await db.all(getDirectorMoviesQuery);
-  response.send(dbResponse);
+  response.send(
+    dbResponse.map((each) => {
+      return {
+        movieName: each.movie_name,
+      };
+    })
+  );
 });
 
 module.exports = app;
